@@ -3,12 +3,24 @@ import { Col, Container, Row } from 'react-bootstrap';
 import { useOutletContext, useNavigate } from "react-router-dom";
 import { get, del } from '../utilsAndHooks/rest';
 import { Table, Button, Modal } from 'react-bootstrap';
+import ModalInfo from "../components/ModalInfo";
 
 export default function AccountView() {
     const [{ user }] = useOutletContext();
     const [bookings, setBookings] = useState({ upcoming: [], past: [] });
     let navigate = useNavigate();
+    const [isBookingCanceled, setIsBookingCanceled] = useState(false);
 
+    // ModalInfo
+    const [infoMessage, setInfoMessage] = useState("");
+    const [showModalInfo, setShowModalInfo] = useState(false);
+    const closeInfoMessage = () => {
+        setShowModalInfo(false);
+    };
+    const alertInfo = (infoText) => {
+        setInfoMessage(infoText);
+        setShowModalInfo(true);
+    }
     useEffect(() => {
         if (user && user.email) {
             (async () => {
@@ -29,7 +41,7 @@ export default function AccountView() {
                 setBookings({ upcoming: upcomingBookings, past: pastBookings });
             })();
         }
-    }, [user]);
+    }, [user, isBookingCanceled]);
 
     function BookingItem({ booking, index, deleteBooking }) {
         const screeningTime = booking.screeningTime.replace('T', ' ').slice(0, -3);
@@ -41,7 +53,12 @@ export default function AccountView() {
                 <td>{booking.bookingNumber}</td>
                 <td>
                     {deleteBooking && (
-                        <Button variant="dark" className="text-light border-1 border-warning" size="md" onClick={() => deleteBooking(booking.bookingNumber, user.email)}>
+                        <Button variant="dark" 
+                        className="text-light border-1 border-warning" 
+                        size="md" 
+                        onClick={() => deleteBooking(booking.bookingNumber, user.email)}
+                        disabled = {isBookingCanceled}
+                        >
                             Avboka
                         </Button>
                     )}
@@ -52,11 +69,19 @@ export default function AccountView() {
 
     async function deleteBooking(bookingNumber, userEmail) {
         try {
-            await del(`Bookings/RemoveBooking/${bookingNumber}/${userEmail}`);
+            var result = await del(`Bookings/RemoveBooking/${bookingNumber}/${userEmail}`);
+            //if (result.error) return;
         } catch (error) {
             console.log("Error i borttag av bokning: ", error);
+            return;
         }
-        navigate("/");
+        //Vill ha en rerender istället för navigate...
+        setIsBookingCanceled(true);
+        alertInfo("Din bokning är avbokad.");
+        setTimeout(() => {
+            setIsBookingCanceled(false);
+        }, 5000);
+        //navigate("/"); 
     }
 
     return (
@@ -113,7 +138,11 @@ export default function AccountView() {
                     </Col>
                 </Row>
             )}
-
+            <ModalInfo
+                infoText={infoMessage}
+                show={showModalInfo}
+                onClose={closeInfoMessage}
+            />
         </Container>
     );
 }

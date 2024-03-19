@@ -260,7 +260,9 @@ button.list-group-item.active {
 }
 
 /* End Arrow scroll navigation */
-
+.pointer-wanted {
+    cursor: pointer;
+}
 @media screen and (max-width: 500px) {
     .movie-information-container {
         display: block;
